@@ -67,7 +67,7 @@ diary-time-tracker/
 ├── static/              # 静态资源
 └── data/                # 数据目录
     ├── input/           # 待处理文件
-    └── processed/      # 已处理文件
+    └── processed/       # 已处理文件
 ```
 
 ## 配置说明
