@@ -1,6 +1,6 @@
 # 日记时间统计 Agent
 
-一个从 HTML 日记中自动提取时间数据并生成可视化统计的工具。
+一个从各种格式日记中自动提取时间数据并生成可视化统计的工具。
 <img width="2525" height="1258" alt="image" src="https://github.com/user-attachments/assets/c417e839-d88c-4bd4-86a4-05c8437d066e" />
 
 ## ⭐ 快速上手（5分钟）
@@ -64,8 +64,6 @@ run.bat
 ## 功能特性
 
 - 📄 **多格式支持** - HTML、PDF、Word、Markdown（未来可能支持OCR）
-- 🤖 大模型自动提取时间数据（支持 DeepSeek、OpenAI 等）
-
 - 🤖 大模型自动提取时间数据（支持 DeepSeek、OpenAI 等）
 - 📊 Apple 风格 Web 仪表盘（环形图 + 分类树 + 诗词展示）
 - 🌳 智能分类（自动发现新子分类）
