@@ -2,6 +2,64 @@
 
 一个从 HTML 日记中自动提取时间数据并生成可视化统计的工具。
 
+## ⭐ 快速上手（5分钟）
+
+### 第一步：克隆项目
+
+打开命令行（CMD或PowerShell），运行：
+```bash
+git clone https://github.com/SPikerinbit/diary-manager.git
+cd diary-manager
+```
+
+### 第二步：创建Python环境
+
+```bash
+# 创建虚拟环境
+python -m venv venv
+
+# 激活虚拟环境
+venv\Scripts\activate
+
+# 安装依赖
+pip install -r requirements.txt
+```
+
+### 第三步：配置API密钥
+
+1. 打开 `config.yaml` 文件
+2. 找到 `api_key` 这一行
+3. 填入你的 DeepSeek 或 OpenAI API密钥
+
+示例（使用 DeepSeek）：
+```yaml
+llm:
+  provider: "openai"
+  api_key: "sk-你的API密钥"        # 填入你的密钥
+  base_url: "https://api.deepseek.com"
+  model: "deepseek-chat"
+```
+
+获取 API 密钥：
+- **DeepSeek**: https://platform.deepseek.com/
+- **OpenAI**: https://platform.openai.com/
+
+### 第四步：运行
+
+```bash
+run.bat
+```
+
+然后打开浏览器访问 http://127.0.0.1:5001 即可看到界面。
+
+### 第五步：使用
+
+1. 把写好的 HTML 日记放入 `data/input` 文件夹
+2. 再次双击 `run.bat`
+3. 在浏览器中查看统计结果
+
+---
+
 ## 功能特性
 
 - 🤖 大模型自动提取时间数据（支持 DeepSeek、OpenAI 等）
