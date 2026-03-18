@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周报 - 时间统计</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">时间统计</div>
+        <ul class="menu">
+            <li><a href="/">概览</a></li>
+            <li><a href="/statistics">统计</a></li>
+            <li><a href="/weekly" class="active">周报</a></li>
+            <li><a href="/files">文件</a></li>
+            <li><a href="/settings">设置</a></li>
+        </ul>
+    </nav>
+    <main class="content">
+        <h1>周报</h1>
+        
+        <div class="form-group">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-secondary" onclick="changeWeek(-1)">← 上周</button>
+                <span id="week-range" style="font-weight: 500;">-</span>
+                <button class="btn btn-secondary" onclick="changeWeek(1)">下周 →</button>
+                <button class="btn" onclick="generateReport()">生成周报</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>本周概览</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">总时长</div>
+                    <div class="stat-value" id="total-hours">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>分类统计</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>分类</th>
+                        <th>时长</th>
+                        <th>占比</th>
+                    </tr>
+                </thead>
+                <tbody id="category-table">
+                    <tr><td colspan="3" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>AI 总结</h2>
+            <div id="ai-summary" class="chart-container">
+                <div class="empty-state">暂无总结</div>
+            </div>
+        </div>
+    </main>
+    <script src="/static/js/app.js"></script>
+    <script>
+        let currentWeeksAgo = 0;
+
+        loadWeeklyReport();
+
+        async function loadWeeklyReport() {
+            const res = await fetch(`${API_BASE}/weekly-report?weeks_ago=${currentWeeksAgo}`);
+            const data = await res.json();
+            
+            document.getElementById('week-range').textContent = `${data.week_start} ~ ${data.week_end}`;
+            document.getElementById('total-hours').textContent = (data.total_hours || 0) + 'h';
+            
+            const summary = data.summary || {};
+            const categories = summary.statistics || [];
+            
+            const tbody = document.getElementById('category-table');
+            if (categories.length > 0) {
+                tbody.innerHTML = categories.map(c => `
+                    <tr>
+                        <td>${c.name}</td>
+                        <td>${c.hours}h</td>
+                        <td>${c.percentage}%</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3" class="empty-state">暂无数据</td></tr>';
+            }
+            
+            const llmSummary = summary.llm_summary || {};
+            const insights = llmSummary.insights || [];
+            const recommendations = llmSummary.recommendations || [];
+            
+            if (insights.length > 0 || recommendations.length > 0) {
+                document.getElementById('ai-summary').innerHTML = `
+                    <h3>洞察</h3>
+                    <ul>${insights.map(i => `<li>${i}</li>`).join('')}</ul>
+                    <h3 style="margin-top: 20px;">建议</h3>
+                    <ul>${recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+                `;
+            }
+        }
+
+        function changeWeek(delta) {
+            currentWeeksAgo += delta;
+            if (currentWeeksAgo < 0) currentWeeksAgo = 0;
+            loadWeeklyReport();
+        }
+
+        async function generateReport() {
+            const res = await fetch(`${API_BASE}/weekly-report/generate`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({weeks_ago: currentWeeksAgo})
+            });
+            loadWeeklyReport();
+        }
+    </script>
+</body>
+</html>

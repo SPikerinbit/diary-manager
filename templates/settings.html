@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - 时间统计</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">时间统计</div>
+        <ul class="menu">
+            <li><a href="/">概览</a></li>
+            <li><a href="/statistics">统计</a></li>
+            <li><a href="/weekly">周报</a></li>
+            <li><a href="/files">文件</a></li>
+            <li><a href="/settings" class="active">设置</a></li>
+        </ul>
+    </nav>
+    <main class="content">
+        <h1>设置</h1>
+        
+        <div class="section">
+            <h2>大模型配置</h2>
+            <div class="form-group">
+                <label>API Provider</label>
+                <select id="llm-provider">
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="llm-api-key" placeholder="输入你的API Key">
+            </div>
+            <div class="form-group">
+                <label>Model</label>
+                <input type="text" id="llm-model" placeholder="如 gpt-4o-mini">
+            </div>
+            <button class="btn" onclick="saveLlmConfig()">保存配置</button>
+        </div>
+
+        <div class="section">
+            <h2>应用信息</h2>
+            <p style="color: #666;">版本: 1.0.0</p>
+            <p style="color: #666;">数据目录: data/</p>
+            <p style="color: #666;">访问地址: http://localhost:5000</p>
+        </div>
+    </main>
+    <script src="/static/js/app.js"></script>
+    <script>
+        async function saveLlmConfig() {
+            const config = {
+                provider: document.getElementById('llm-provider').value,
+                api_key: document.getElementById('llm-api-key').value,
+                model: document.getElementById('llm-model').value
+            };
+            
+            const res = await fetch('/api/config/llm', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(config)
+            });
+            
+            if (res.ok) {
+                alert('配置已保存');
+            } else {
+                alert('保存失败');
+            }
+        }
+    </script>
+</body>
+</html>

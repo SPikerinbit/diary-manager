@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间统计</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">时间统计</div>
+        <ul class="menu">
+            <li><a href="/" class="active">概览</a></li>
+            <li><a href="/statistics">统计</a></li>
+            <li><a href="/weekly">周报</a></li>
+            <li><a href="/files">文件</a></li>
+            <li><a href="/settings">设置</a></li>
+        </ul>
+    </nav>
+    <main class="content">
+        <h1>概览</h1>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">本周学习</div>
+                <div class="stat-value" id="week-study">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">本周玩耍</div>
+                <div class="stat-value" id="week-play">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">本周睡觉</div>
+                <div class="stat-value" id="week-sleep">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">待处理文件</div>
+                <div class="stat-value" id="pending-files">-</div>
+            </div>
+        </div>
+        <div class="section">
+            <h2>分类树</h2>
+            <div id="category-tree" class="tree-view"></div>
+        </div>
+    </main>
+    <script src="/static/js/app.js"></script>
+    <script>
+        loadOverview();
+    </script>
+</body>
+</html>

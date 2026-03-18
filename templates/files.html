@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件 - 时间统计</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">时间统计</div>
+        <ul class="menu">
+            <li><a href="/">概览</a></li>
+            <li><a href="/statistics">统计</a></li>
+            <li><a href="/weekly">周报</a></li>
+            <li><a href="/files" class="active">文件</a></li>
+            <li><a href="/settings">设置</a></li>
+        </ul>
+    </nav>
+    <main class="content">
+        <h1>文件管理</h1>
+        
+        <div class="section">
+            <h2>待处理文件</h2>
+            <p style="color: #666; margin-bottom: 20px;">将 PDF、Markdown、Word 文档拖入 <code>data/input</code> 目录</p>
+            <ul class="file-list" id="pending-list">
+                <li class="empty-state">加载中...</li>
+            </ul>
+        </div>
+    </main>
+    <script src="/static/js/app.js"></script>
+    <script>
+        loadPendingFiles();
+
+        async function loadPendingFiles() {
+            const res = await fetch(`${API_BASE}/files/pending`);
+            const data = await res.json();
+            
+            const list = document.getElementById('pending-list');
+            if (data.files && data.files.length > 0) {
+                list.innerHTML = data.files.map(f => `
+                    <li class="file-item">
+                        <span class="file-name">${f.name}</span>
+                        <span class="file-info">${f.modified}</span>
+                        <span class="file-info">${formatSize(f.size)}</span>
+                        <button class="btn btn-secondary" onclick="processFile('${f.name}')">处理</button>
+                    </li>
+                `).join('');
+            } else {
+                list.innerHTML = '<li class="empty-state">暂无待处理文件</li>';
+            }
+        }
+
+        async function processFile(filename) {
+            if (!confirm(`确定处理文件 "${filename}" 吗？`)) return;
+            
+            const res = await fetch(`${API_BASE}/files/process`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filename})
+            });
+            
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert('处理成功！');
+                loadPendingFiles();
+            } else {
+                alert('处理失败: ' + (data.message || data.reason));
+            }
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+        }
+    </script>
+</body>
+</html>

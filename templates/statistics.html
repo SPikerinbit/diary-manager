@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计 - 时间统计</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="logo">时间统计</div>
+        <ul class="menu">
+            <li><a href="/">概览</a></li>
+            <li><a href="/statistics" class="active">统计</a></li>
+            <li><a href="/weekly">周报</a></li>
+            <li><a href="/files">文件</a></li>
+            <li><a href="/settings">设置</a></li>
+        </ul>
+    </nav>
+    <main class="content">
+        <h1>统计数据</h1>
+        
+        <div class="form-group">
+            <label>日期范围</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="date" id="start-date">
+                <input type="date" id="end-date">
+                <button class="btn" onclick="loadStats()">查询</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>分类统计</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>分类</th>
+                        <th>时长（小时）</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-table">
+                    <tr><td colspan="2" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>详细记录</h2>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>分类</th>
+                        <th>时长</th>
+                        <th>来源</th>
+                    </tr>
+                </thead>
+                <tbody id="records-table">
+                    <tr><td colspan="4" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <script src="/static/js/app.js"></script>
+    <script>
+        // 设置默认日期范围（本周）
+        const now = new Date();
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getWeekday());
+        document.getElementById('start-date').value = formatDate(weekStart);
+        document.getElementById('end-date').value = formatDate(now);
+
+        loadStats();
+        loadRecords();
+
+        async function loadStats() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            const res = await fetch(`${API_BASE}/statistics?start_date=${startDate}&end_date=${endDate}`);
+            const data = await res.json();
+            
+            const tbody = document.getElementById('stats-table');
+            if (data.statistics && data.statistics.length > 0) {
+                tbody.innerHTML = data.statistics.map(s => `
+                    <tr>
+                        <td>${s.name}</td>
+                        <td>${s.hours}h</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="2" class="empty-state">暂无数据</td></tr>';
+            }
+        }
+
+        async function loadRecords() {
+            const res = await fetch(`${API_BASE}/records?limit=100`);
+            const data = await res.json();
+            
+            const tbody = document.getElementById('records-table');
+            if (data.records && data.records.length > 0) {
+                tbody.innerHTML = data.records.map(r => `
+                    <tr>
+                        <td>${r.date}</td>
+                        <td>${r.category}</td>
+                        <td>${r.duration_hours}h</td>
+                        <td>${r.source_file || '-'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">暂无记录</td></tr>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# 日记时间统计 Agent 配置文件
+
+# 大模型API配置
+llm:
+  provider: "openai"  # 支持: openai, anthropic, custom
+  api_key: ""         # 你的API密钥
+  base_url: ""        # 自定义API地址（可选，用于代理）
+  model: "gpt-4o-mini" # 默认模型
+  temperature: 0.3    # 较低温度减少幻觉
+
+# 应用配置
+app:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+# 目录配置
+directories:
+  input: "data/input"        # 待处理文档目录
+  processed: "data/processed" # 已处理文档归档
+  database: "data/database.db"
+  logs: "logs"
+
+# 分类树根节点（系统预置）
+categories:
+  roots:
+    - name: "学习"
+      code: "study"
+    - name: "睡觉"
+      code: "sleep"
+    - name: "玩耍"
+      code: "play"
+    - name: "吃饭"
+      code: "eat"
+    - name: "工作"
+      code: "work"
+
+# 定时任务配置
+scheduler:
+  enabled: true
+  weekly_report_day: "sunday"  # 每周生成报告的日子
+  weekly_report_hour: 20       # 报告生成时间（24小时制）
+
+# 文件监控配置
+watcher:
+  check_interval: 30  # 检查间隔（秒）
+  hash_file: "data/processed_hashes.json"  # 已处理文件hash记录
