@@ -1,6 +1,7 @@
 # 日记时间统计 Agent
 
 一个从 HTML 日记中自动提取时间数据并生成可视化统计的工具。
+<img width="2525" height="1258" alt="image" src="https://github.com/user-attachments/assets/c417e839-d88c-4bd4-86a4-05c8437d066e" />
 
 ## ⭐ 快速上手（5分钟）
 
