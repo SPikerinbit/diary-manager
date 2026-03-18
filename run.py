@@ -28,20 +28,28 @@ def main():
 
     # 创建Flask应用
     from app import create_app, init_scheduler
+    from app.config import config
 
     app = create_app()
 
-    # 启动定时任务
-    scheduler = init_scheduler()
-    logger.info("定时任务已启动")
+    # 启动定时任务（根据配置）
+    scheduler_config = config.get("scheduler", {})
+    scheduler = None
+    if scheduler_config.get("enabled", True):
+        scheduler = init_scheduler()
+        logger.info("定时任务已启动")
+    else:
+        logger.info("定时任务已禁用")
 
-    # 启动文件监控
-    from app.watcher import start_file_watcher
+    # 启动文件监控（根据配置）
+    watcher_config = config.get("watcher", {})
+    watcher = None
+    if watcher_config.get("enabled", True):
+        from app.watcher import start_file_watcher
 
-    watcher = start_file_watcher()
-
-    # 启动Web服务器
-    from app.config import config
+        watcher = start_file_watcher()
+    else:
+        logger.info("文件监控已禁用")
 
     app_config = config["app"]
 
@@ -57,9 +65,11 @@ def main():
     except KeyboardInterrupt:
         logger.info("收到退出信号，正在关闭...")
     finally:
-        watcher.stop()
-        watcher.join()
-        scheduler.shutdown()
+        if watcher:
+            watcher.stop()
+            watcher.join()
+        if scheduler:
+            scheduler.shutdown()
         logger.info("服务已关闭")
 
 

@@ -3,48 +3,516 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>时间统计</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <title>Time Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        }
+        
+        body {
+            background-color: #F9FAFB;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+        }
+        
+        .card:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.06);
+        }
+        
+        .segmented-control {
+            display: inline-flex;
+            background: #F3F4F6;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        
+        .segmented-control button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6B7280;
+            transition: all 0.2s;
+        }
+        
+        .segmented-control button.active {
+            background: white;
+            color: #111827;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .category-item {
+            padding: 10px 16px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin: 4px 0;
+        }
+        
+        .category-item:hover {
+            background: #F3F4F6;
+        }
+        
+        .category-item.active {
+            background: #111827;
+            color: white;
+        }
+        
+        .category-child {
+            margin-left: 24px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #6B7280;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .category-child:hover {
+            background: #F3F4F6;
+            color: #111827;
+        }
+        
+        .category-child.active {
+            background: #EEF2FF;
+            color: #4F46E5;
+        }
+    </style>
 </head>
-<body>
-    <nav class="sidebar">
-        <div class="logo">时间统计</div>
-        <ul class="menu">
-            <li><a href="/" class="active">概览</a></li>
-            <li><a href="/statistics">统计</a></li>
-            <li><a href="/weekly">周报</a></li>
-            <li><a href="/files">文件</a></li>
-            <li><a href="/settings">设置</a></li>
-        </ul>
-    </nav>
-    <main class="content">
-        <h1>概览</h1>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">本周学习</div>
-                <div class="stat-value" id="week-study">-</div>
+<body class="min-h-screen p-6">
+    <!-- Header -->
+    <header class="mb-8">
+        <h1 class="text-3xl font-semibold text-gray-900">Time Tracker</h1>
+        <p class="text-gray-500 mt-1" id="week-label">本周数据概览</p>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Panel -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Donut Chart -->
+            <div class="card p-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">时间分配</h2>
+                <div id="donut-chart" class="w-full h-80"></div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">本周玩耍</div>
-                <div class="stat-value" id="week-play">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">本周睡觉</div>
-                <div class="stat-value" id="week-sleep">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">待处理文件</div>
-                <div class="stat-value" id="pending-files">-</div>
+            
+            <!-- Category Tree with Poem -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">分类层级</h2>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="col-span-2">
+                        <div id="category-tree" class="space-y-1"></div>
+                    </div>
+                    <div class="col-span-1 border-l pl-4">
+                        <div id="poem-container" class="min-h-[200px] flex items-center justify-center">
+                            <p class="text-gray-400 text-sm">加载中...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="section">
-            <h2>分类树</h2>
-            <div id="category-tree" class="tree-view"></div>
+
+        <!-- Right Panel -->
+        <div class="space-y-6">
+            <!-- Time Range Selector -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">时间范围</h2>
+                <div class="flex items-center justify-between mb-4">
+                    <button onclick="prevRange()" class="p-2 hover:bg-gray-100 rounded-lg">←</button>
+                    <div class="segmented-control flex-1 mx-2">
+                        <button class="flex-1" onclick="setTimeRange('today')" id="btn-today">日</button>
+                        <button class="flex-1 active" onclick="setTimeRange('week')" id="btn-week">周</button>
+                        <button class="flex-1" onclick="setTimeRange('month')" id="btn-month">月</button>
+                        <button class="flex-1" onclick="setTimeRange('year')" id="btn-year">年</button>
+                    </div>
+                    <button onclick="nextRange()" class="p-2 hover:bg-gray-100 rounded-lg">→</button>
+                </div>
+                <p class="text-sm text-gray-500 text-center" id="date-range-text">2026-03-16 ~ 2026-03-22</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="card p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">关键数据</h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">总记录</span>
+                        <span class="text-xl font-semibold text-gray-900" id="total-records">0 条</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">总时长</span>
+                        <span class="text-xl font-semibold text-gray-900" id="total-hours">0h</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-500">最高频</span>
+                        <span class="text-lg font-medium text-indigo-600" id="top-category">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <button onclick="goBack()" id="back-btn" class="hidden w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl text-gray-700 font-medium transition-colors">
+                ← 返回上级
+            </button>
         </div>
-    </main>
-    <script src="/static/js/app.js"></script>
+    </div>
+
     <script>
-        loadOverview();
+        const API_BASE = '/api';
+        
+        let pieChart = null;
+        let currentRange = 'week';
+        let currentRootId = null;
+        let categoryPath = [];
+        let currentDate = new Date();
+        
+        // 颜色配置 - 用于图表和分类按钮
+        const COLORS = ['#60A5FA', '#34D399', '#FBBF24', '#F87171', '#A78BFA', '#F472B6', '#22D3D3', '#FB923C'];
+        
+        // 分类名称到颜色的映射
+        let categoryColorMap = {};
+        
+        // 每日诗词
+        const POEMS = [
+            { title: "静夜思", content: "床前明月光，疑是地上霜。\n举头望明月，低头思故乡。" },
+            { title: "春晓", content: "春眠不觉晓，处处闻啼鸟。\n夜来风雨声，花落知多少。" },
+            { title: "登鹳雀楼", content: "白日依山尽，黄河入海流。\n欲穷千里目，更上一层楼。" },
+            { title: "相思", content: "红豆生南国，春来发几枝。\n愿君多采撷，此物最相思。" },
+            { title: "悯农", content: "锄禾日当午，汗滴禾下土。\n谁知盘中餐，粒粒皆辛苦。" },
+            { title: "游子吟", content: "慈母手中线，游子身上衣。\n临行密密缝，意恐迟迟归。" },
+            { title: "鹿柴", content: "空山不见人，但闻人语响。\n返景入深林，复照青苔上。" },
+            { title: "江雪", content: "千山鸟飞绝，万径人踪灭。\n孤舟蓑笠翁，独钓寒江雪。" },
+            { title: "早发白帝城", content: "朝辞白帝彩云间，千里江陵一日还。\n两岸猿声啼不住，轻舟已过万重山。" },
+            { title: "绝句", content: "两个黄鹂鸣翠柳，一行白鹭上青天。\n窗含西岭千秋雪，门泊东吴万里船。" }
+        ];
+        
+        function getRandomPoem() {
+            return POEMS[Math.floor(Math.random() * POEMS.length)];
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            pieChart = echarts.init(document.getElementById('donut-chart'));
+            setTimeRange('week');
+            window.addEventListener('resize', () => pieChart && pieChart.resize());
+            renderPoem();
+        });
+        
+        function renderPoem() {
+            const poem = getRandomPoem();
+            const poemContainer = document.getElementById('poem-container');
+            if (poemContainer) {
+                poemContainer.innerHTML = `
+                    <div class="text-center">
+                        <p class="text-lg font-medium text-gray-800 mb-2">${poem.title}</p>
+                        <p class="text-sm text-gray-600 whitespace-pre-line leading-relaxed">${poem.content}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function getDateRange() {
+            let start, end, label;
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const day = currentDate.getDate();
+            
+            if (currentRange === 'today') {
+                start = end = new Date(year, month, day);
+                label = currentDate.toLocaleDateString('zh-CN');
+            } else if (currentRange === 'week') {
+                const weekDay = currentDate.getDay() || 7;
+                start = new Date(year, month, day - weekDay + 1);
+                end = new Date(start);
+                end.setDate(start.getDate() + 6);
+                label = `${formatDate(start)} ~ ${formatDate(end)}`;
+            } else if (currentRange === 'month') {
+                start = new Date(year, month, 1);
+                end = new Date(year, month + 1, 0);
+                label = `${year}-${String(month + 1).padStart(2, '0')}月`;
+            } else if (currentRange === 'year') {
+                start = new Date(year, 0, 1);
+                end = new Date(year, 11, 31);
+                label = `${year}年`;
+            }
+            
+            return { start: formatDate(start), end: formatDate(end), label };
+        }
+
+        function getRangeStep() {
+            if (currentRange === 'today') return 1;
+            if (currentRange === 'week') return 7;
+            if (currentRange === 'month') return 30;
+            return 365;
+        }
+
+        function setTimeRange(range) {
+            currentRange = range;
+            
+            // Update buttons
+            document.querySelectorAll('.segmented-control button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${range}`).classList.add('active');
+            
+            // Set default date to today when switching range
+            currentDate = new Date();
+            
+            // Update display
+            updateDisplay();
+        }
+
+        function prevRange() {
+            const d = new Date(currentDate);
+            
+            if (currentRange === 'today') {
+                d.setDate(d.getDate() - 1);
+            } else if (currentRange === 'week') {
+                d.setDate(d.getDate() - 7);
+            } else if (currentRange === 'month') {
+                d.setMonth(d.getMonth() - 1);
+            } else if (currentRange === 'year') {
+                d.setFullYear(d.getFullYear() - 1);
+            }
+            
+            currentDate = d;
+            updateDisplay();
+        }
+
+        function nextRange() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const d = new Date(currentDate);
+            
+            if (currentRange === 'today') {
+                d.setDate(d.getDate() + 1);
+            } else if (currentRange === 'week') {
+                d.setDate(d.getDate() + 7);
+            } else if (currentRange === 'month') {
+                d.setMonth(d.getMonth() + 1);
+            } else if (currentRange === 'year') {
+                d.setFullYear(d.getFullYear() + 1);
+            }
+            
+            // Check if next range is in future
+            if (d > today) {
+                alert('已经是最新了');
+                return;
+            }
+            
+            currentDate = d;
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const dates = getDateRange();
+            document.getElementById('date-range-text').textContent = dates.label;
+            
+            // Update week label
+            const labels = {
+                'today': '今日数据概览',
+                'week': '本周数据概览',
+                'month': '本月数据概览',
+                'year': '本年数据概览'
+            };
+            document.getElementById('week-label').textContent = labels[currentRange] || '数据概览';
+            
+            // Reset category path when changing date
+            currentRootId = null;
+            categoryPath = [];
+            
+            loadData();
+        }
+
+        async function loadData() {
+            const dates = getDateRange();
+            const url = currentRootId 
+                ? `${API_BASE}/statistics/by-category?category_id=${currentRootId}&start_date=${dates.start}&end_date=${dates.end}`
+                : `${API_BASE}/statistics/by-level?level=0&start_date=${dates.start}&end_date=${dates.end}`;
+            
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                renderChart(data.statistics || []);
+                updateStats(data.statistics || []);
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+            
+            loadCategories();
+        }
+
+        function renderChart(data) {
+            if (!pieChart) return;
+            
+            const total = data.reduce((sum, item) => sum + (item.hours || 0), 0);
+            
+            // 更新分类颜色映射
+            categoryColorMap = {};
+            data.forEach((item, i) => {
+                categoryColorMap[item.name] = COLORS[i % COLORS.length];
+            });
+            
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: '{b}: {c}h ({d}%)'
+                },
+                series: [{
+                    type: 'pie',
+                    radius: ['50%', '75%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 8,
+                        borderColor: '#fff',
+                        borderWidth: 3
+                    },
+                    label: { show: false },
+                    emphasis: {
+                        label: { show: false },
+                        scale: true,
+                        scaleSize: 10
+                    },
+                    data: data.map((item, i) => ({
+                        name: item.name,
+                        value: item.hours || 0,
+                        itemStyle: { color: COLORS[i % COLORS.length] }
+                    }))
+                }],
+                graphic: [{
+                    type: 'text',
+                    left: 'center',
+                    top: 'center',
+                    style: {
+                        text: `${total.toFixed(1)}h`,
+                        fontSize: 28,
+                        fontWeight: 600,
+                        fill: '#111827'
+                    }
+                }]
+            };
+            
+            pieChart.setOption(option);
+            pieChart.off('click');
+            pieChart.on('click', (params) => {
+                if (params.data) {
+                    navigateToCategory(params.data.id || params.data.name);
+                }
+            });
+        }
+
+        function updateStats(data) {
+            const totalHours = data.reduce((sum, item) => sum + (item.hours || 0), 0);
+            const topCategory = data.sort((a, b) => (b.hours || 0) - (a.hours || 0))[0];
+            
+            document.getElementById('total-hours').textContent = `${totalHours.toFixed(1)}h`;
+            document.getElementById('top-category').textContent = topCategory?.name || '-';
+            document.getElementById('total-records').textContent = `${data.length} 条`;
+        }
+
+        async function loadCategories() {
+            try {
+                const res = await fetch(`${API_BASE}/categories`);
+                const data = await res.json();
+                renderCategoryTree(data.categories || []);
+            } catch (error) {
+                console.error('加载分类失败:', error);
+            }
+        }
+
+        function renderCategoryTree(categories) {
+            let current = categories;
+            
+            // Navigate to current path
+            for (const id of categoryPath) {
+                const found = current.find(c => c.id === id);
+                if (found && found.children) {
+                    current = found.children;
+                }
+            }
+            
+            const container = document.getElementById('category-tree');
+            
+            // Show back button if not at root
+            const backBtn = document.getElementById('back-btn');
+            if (categoryPath.length > 0) {
+                backBtn.classList.remove('hidden');
+            } else {
+                backBtn.classList.add('hidden');
+            }
+            
+            if (!current || current.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-sm">暂无数据</p>';
+                return;
+            }
+            
+            let html = '';
+            current.forEach((cat, index) => {
+                const isActive = currentRootId === cat.id;
+                const hasChildren = cat.children && cat.children.length > 0;
+                const color = categoryColorMap[cat.name] || COLORS[index % COLORS.length];
+                
+                html += `
+                    <div class="category-item ${isActive ? 'active' : ''}" 
+                         onclick="navigateToCategory(${cat.id}, '${cat.name}')"
+                         style="border-left: 4px solid ${color};">
+                        <span class="font-medium">${cat.name}</span>
+                        ${hasChildren ? '<span class="text-xs opacity-60 ml-2">→</span>' : ''}
+                    </div>
+                `;
+                
+                if (hasChildren && isActive) {
+                    cat.children.forEach((child, childIndex) => {
+                        const childColor = COLORS[(index + childIndex + 1) % COLORS.length];
+                        html += `<div class="category-child" onclick="event.stopPropagation(); navigateToCategory(${child.id}, '${child.name}')" style="border-left: 3px solid ${childColor};">${child.name}</div>`;
+                    });
+                }
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function navigateToCategory(id, name) {
+            // Check if has children
+            try {
+                const dates = getDateRange();
+                const res = await fetch(`${API_BASE}/statistics/by-category?category_id=${id}&start_date=${dates.start}&end_date=${dates.end}`);
+                const data = await res.json();
+                
+                if (!data.statistics || data.statistics.length === 0) {
+                    // No children, show message
+                    alert('该分类没有子节点了');
+                    return;
+                }
+                
+                currentRootId = id;
+                categoryPath.push(id);
+                loadData();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function goBack() {
+            if (categoryPath.length > 0) {
+                categoryPath.pop();
+                currentRootId = categoryPath.length > 0 ? categoryPath[categoryPath.length - 1] : null;
+                loadData();
+            }
+        }
+
+        function formatDate(date) {
+            const d = typeof date === 'string' ? new Date(date) : date;
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
     </script>
 </body>
 </html>

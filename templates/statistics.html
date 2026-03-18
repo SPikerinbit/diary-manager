@@ -20,13 +20,10 @@
     <main class="content">
         <h1>统计数据</h1>
         
-        <div class="form-group">
-            <label>日期范围</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="date" id="start-date">
-                <input type="date" id="end-date">
-                <button class="btn" onclick="loadStats()">查询</button>
-            </div>
+        <div class="week-nav">
+            <button class="btn" onclick="prevWeek()">上一周</button>
+            <span id="week-label">本周</span>
+            <button class="btn" onclick="nextWeek()">下一周</button>
         </div>
 
         <div class="section">
@@ -63,21 +60,51 @@
     </main>
     <script src="/static/js/app.js"></script>
     <script>
-        // 设置默认日期范围（本周）
-        const now = new Date();
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getWeekday());
-        document.getElementById('start-date').value = formatDate(weekStart);
-        document.getElementById('end-date').value = formatDate(now);
-
-        loadStats();
-        loadRecords();
-
+        let currentWeekOffset = 0;
+        
+        function getWeekRange(offset) {
+            const now = new Date();
+            const weekStart = new Date(now);
+            weekStart.setDate(now.getDate() - now.getWeekday() + offset * 7);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            return {
+                start: formatDate(weekStart),
+                end: formatDate(weekEnd),
+                label: `${formatDate(weekStart)} ~ ${formatDate(weekEnd)}`
+            };
+        }
+        
+        function updateWeekLabel() {
+            const range = getWeekRange(currentWeekOffset);
+            const label = document.getElementById('week-label');
+            if (currentWeekOffset === 0) {
+                label.textContent = '本周';
+            } else if (currentWeekOffset === 1) {
+                label.textContent = '下周';
+            } else if (currentWeekOffset === -1) {
+                label.textContent = '上周';
+            } else {
+                label.textContent = range.label;
+            }
+        }
+        
+        function prevWeek() {
+            currentWeekOffset--;
+            updateWeekLabel();
+            loadStats();
+        }
+        
+        function nextWeek() {
+            currentWeekOffset++;
+            updateWeekLabel();
+            loadStats();
+        }
+        
         async function loadStats() {
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
+            const range = getWeekRange(currentWeekOffset);
             
-            const res = await fetch(`${API_BASE}/statistics?start_date=${startDate}&end_date=${endDate}`);
+            const res = await fetch(`${API_BASE}/statistics?start_date=${range.start}&end_date=${range.end}`);
             const data = await res.json();
             
             const tbody = document.getElementById('stats-table');
@@ -92,9 +119,10 @@
                 tbody.innerHTML = '<tr><td colspan="2" class="empty-state">暂无数据</td></tr>';
             }
         }
-
+        
         async function loadRecords() {
-            const res = await fetch(`${API_BASE}/records?limit=100`);
+            const range = getWeekRange(currentWeekOffset);
+            const res = await fetch(`${API_BASE}/records?limit=100&start_date=${range.start}&end_date=${range.end}`);
             const data = await res.json();
             
             const tbody = document.getElementById('records-table');
@@ -111,6 +139,10 @@
                 tbody.innerHTML = '<tr><td colspan="4" class="empty-state">暂无记录</td></tr>';
             }
         }
+        
+        updateWeekLabel();
+        loadStats();
+        loadRecords();
     </script>
 </body>
 </html>

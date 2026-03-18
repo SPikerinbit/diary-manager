@@ -1,6 +1,7 @@
 # routes/api.py
 from flask import jsonify, request
 from datetime import datetime, timedelta
+from sqlalchemy import func
 import json
 
 from app.routes import api_bp
@@ -28,10 +29,8 @@ def get_statistics():
 
     stats = TimeRecordProcessor.get_statistics(start, end, category_id)
 
-    # 获取层级结构
     tree = CategoryManager.get_category_tree()
 
-    # 计算每个节点及其子节点的总时间
     def calc_hours(node, stats):
         node_hours = (
             stats.get(node["code"], {}).get("total_hours", 0) if node.get("code") else 0
@@ -58,6 +57,202 @@ def get_statistics():
     return jsonify({"statistics": result})
 
 
+@api_bp.route("/statistics/by-level", methods=["GET"])
+def get_statistics_by_level():
+    """获取指定层级的统计数据（包括所有分类，父分类时间=子分类之和）"""
+    level = request.args.get("level", 0, type=int)
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else None
+    end = datetime.strptime(end_date, "%Y-%m-%d") if end_date else None
+
+    session = get_session()
+    try:
+        from sqlalchemy import func
+
+        # 获取该层级的所有分类
+        categories = session.query(Category).filter(Category.level == level).all()
+
+        # 获取所有分类（用于构建children_map）
+        all_categories = session.query(Category).all()
+
+        # 构建子分类映射：parent_id -> [child_ids]
+        children_map = {}
+        cat_id_to_level = {}
+        for c in all_categories:
+            cat_id_to_level[c.id] = c.level
+            if c.parent_id is not None:
+                if c.parent_id not in children_map:
+                    children_map[c.parent_id] = []
+                children_map[c.parent_id].append(c.id)
+
+        # 获取所有时间记录（带日期过滤）
+        time_query = session.query(
+            TimeRecord.category_id,
+            func.sum(TimeRecord.duration_minutes).label("total_minutes"),
+        ).group_by(TimeRecord.category_id)
+
+        if start:
+            time_query = time_query.filter(TimeRecord.date >= start)
+        if end:
+            time_query = time_query.filter(TimeRecord.date <= end)
+
+        time_stats = {t.category_id: t.total_minutes or 0 for t in time_query.all()}
+
+        # 计算每个分类的时间（包括子分类）
+        def calc_total_minutes(cat_id):
+            total = time_stats.get(cat_id, 0)
+            if cat_id in children_map:
+                for child_id in children_map[cat_id]:
+                    total += calc_total_minutes(child_id)
+            return total
+
+        result = []
+        for cat in categories:
+            minutes = calc_total_minutes(cat.id)
+            result.append(
+                {
+                    "id": cat.id,
+                    "name": cat.name,
+                    "code": cat.code,
+                    "level": cat.level,
+                    "parent_id": cat.parent_id,
+                    "hours": round(minutes / 60, 2),
+                    "minutes": minutes,
+                }
+            )
+
+        return jsonify({"statistics": result})
+    finally:
+        session.close()
+
+
+@api_bp.route("/statistics/by-category", methods=["GET"])
+def get_statistics_by_category():
+    """获取指定分类的子节点统计"""
+    category_id = request.args.get("category_id", type=int)
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else None
+    end = datetime.strptime(end_date, "%Y-%m-%d") if end_date else None
+
+    session = get_session()
+    try:
+        if not category_id:
+            return jsonify({"statistics": []})
+
+        category = session.query(Category).filter(Category.id == category_id).first()
+        if not category:
+            return jsonify({"statistics": []})
+
+        # 获取该分类的所有子节点
+        children = (
+            session.query(Category).filter(Category.parent_id == category_id).all()
+        )
+
+        # 如果没有子节点，返回空
+        if not children:
+            return jsonify({"statistics": []})
+
+        # 获取所有时间记录（带日期过滤）
+        time_query = session.query(
+            TimeRecord.category_id,
+            func.sum(TimeRecord.duration_minutes).label("total_minutes"),
+        ).group_by(TimeRecord.category_id)
+
+        if start:
+            time_query = time_query.filter(TimeRecord.date >= start)
+        if end:
+            time_query = time_query.filter(TimeRecord.date <= end)
+
+        time_stats = {t.category_id: t.total_minutes or 0 for t in time_query.all()}
+
+        # 构建子分类映射
+        all_cats = session.query(Category).all()
+        children_map = {}
+        for c in all_cats:
+            if c.parent_id is not None:
+                if c.parent_id not in children_map:
+                    children_map[c.parent_id] = []
+                children_map[c.parent_id].append(c.id)
+
+        # 计算每个分类的时间（包括子分类）
+        def calc_total_minutes(cat_id):
+            total = time_stats.get(cat_id, 0)
+            if cat_id in children_map:
+                for child_id in children_map[cat_id]:
+                    total += calc_total_minutes(child_id)
+            return total
+
+        result = []
+        for child in children:
+            minutes = calc_total_minutes(child.id)
+            result.append(
+                {
+                    "id": child.id,
+                    "name": child.name,
+                    "code": child.code,
+                    "level": child.level,
+                    "parent_id": child.parent_id,
+                    "hours": round(minutes / 60, 2),
+                    "minutes": minutes,
+                }
+            )
+
+        return jsonify({"statistics": result})
+    finally:
+        session.close()
+
+
+@api_bp.route("/timeline/dates", methods=["GET"])
+def get_timeline_dates():
+    """获取时间线日期"""
+    granularity = request.args.get("granularity", "month")
+
+    session = get_session()
+    try:
+        from sqlalchemy import func, extract
+
+        if granularity == "year":
+            query = session.query(
+                extract("year", TimeRecord.date).label("period")
+            ).distinct()
+        elif granularity == "month":
+            query = session.query(
+                extract("year", TimeRecord.date).label("year"),
+                extract("month", TimeRecord.date).label("period"),
+            ).distinct()
+        else:
+            query = session.query(
+                extract("year", TimeRecord.date).label("year"),
+                extract("week", TimeRecord.date).label("period"),
+            ).distinct()
+
+        results = query.all()
+
+        dates = []
+        if granularity == "year":
+            dates = [str(int(r.period)) for r in results if r.period]
+        elif granularity == "month":
+            dates = [
+                f"{int(r.year)}-{int(r.period):02d}"
+                for r in results
+                if r.year and r.period
+            ]
+        else:
+            dates = [
+                f"{int(r.year)}-W{int(r.period):02d}"
+                for r in results
+                if r.year and r.period
+            ]
+
+        return jsonify({"dates": sorted(dates, reverse=True)})
+    finally:
+        session.close()
+
+
 @api_bp.route("/statistics/hierarchical", methods=["GET"])
 def get_hierarchical_statistics():
     """获取层级化统计数据（用于树状展开）"""
@@ -76,17 +271,26 @@ def get_records():
     """获取时间记录"""
     limit = request.args.get("limit", 50, type=int)
     offset = request.args.get("offset", 0, type=int)
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    start = datetime.strptime(start_date, "%Y-%m-%d") if start_date else None
+    end = datetime.strptime(end_date, "%Y-%m-%d") if end_date else None
 
     session = get_session()
     try:
-        records = (
-            session.query(TimeRecord, Category)
-            .join(Category, TimeRecord.category_id == Category.id)
-            .order_by(TimeRecord.date.desc())
-            .limit(limit)
-            .offset(offset)
-            .all()
+        query = session.query(TimeRecord, Category).join(
+            Category, TimeRecord.category_id == Category.id
         )
+
+        if start:
+            query = query.filter(TimeRecord.date >= start)
+        if end:
+            query = query.filter(TimeRecord.date <= end)
+
+        query = query.order_by(TimeRecord.date.desc()).limit(limit).offset(offset)
+
+        records = query.all()
 
         result = []
         for record, category in records:
@@ -179,6 +383,8 @@ def get_pending_files():
             ".markdown",
             ".docx",
             ".doc",
+            ".html",
+            ".htm",
         ]:
             files.append(
                 {

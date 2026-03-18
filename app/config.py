@@ -6,6 +6,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).parent.parent
 CONFIG_FILE = BASE_DIR / "config.yaml"
 
+__all__ = ["config", "BASE_DIR", "load_config", "ensure_directories"]
+
 
 def load_config():
     """加载配置文件"""

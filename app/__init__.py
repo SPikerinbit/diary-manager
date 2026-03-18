@@ -1,13 +1,18 @@
 # app/__init__.py
+import os
 from flask import Flask
 from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from app.config import config
+from app.config import config, BASE_DIR
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        template_folder=str(BASE_DIR / "templates"),
+        static_folder=str(BASE_DIR / "static"),
+    )
     CORS(app)
 
     app.config["SECRET_KEY"] = "diary-time-tracker-secret-key"

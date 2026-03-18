@@ -1,34 +1,14 @@
 # routes/views.py
-from flask import render_template
+import os
+from flask import Response
 
 from app.routes import views_bp
+from app.config import BASE_DIR
 
 
 @views_bp.route("/")
 def index():
-    """主页"""
-    return render_template("index.html")
-
-
-@views_bp.route("/statistics")
-def statistics():
-    """统计页面"""
-    return render_template("statistics.html")
-
-
-@views_bp.route("/weekly")
-def weekly():
-    """周报页面"""
-    return render_template("weekly.html")
-
-
-@views_bp.route("/files")
-def files():
-    """文件管理页面"""
-    return render_template("files.html")
-
-
-@views_bp.route("/settings")
-def settings():
-    """设置页面"""
-    return render_template("settings.html")
+    """主页 - Apple风格仪表盘"""
+    html_path = BASE_DIR / "templates" / "index.html"
+    with open(html_path, "r", encoding="utf-8") as f:
+        return Response(f.read(), mimetype="text/html")

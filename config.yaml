@@ -3,15 +3,16 @@
 # 大模型API配置
 llm:
   provider: "openai"  # 支持: openai, anthropic, custom
-  api_key: ""         # 你的API密钥
-  base_url: ""        # 自定义API地址（可选，用于代理）
-  model: "gpt-4o-mini" # 默认模型
-  temperature: 0.3    # 较低温度减少幻觉
+  api_key: "***"         # 你的API密钥
+  base_url: "https://api.deepseek.com"        # 自定义API地址（可选，用于代理）
+  model: "deepseek-chat" # 默认模型
+  temperature: 0.0    # 较低温度减少幻觉 (0.0-0.2 推荐)
+  timeout: 60         # API超时时间（秒）
 
 # 应用配置
 app:
-  host: "0.0.0.0"
-  port: 5000
+  host: "127.0.0.1"
+  port: 5001
   debug: false
 
 # 目录配置
@@ -21,27 +22,28 @@ directories:
   database: "data/database.db"
   logs: "logs"
 
-# 分类树根节点（系统预置）
-categories:
-  roots:
-    - name: "学习"
-      code: "study"
-    - name: "睡觉"
-      code: "sleep"
-    - name: "玩耍"
-      code: "play"
-    - name: "吃饭"
-      code: "eat"
-    - name: "工作"
-      code: "work"
-
 # 定时任务配置
 scheduler:
-  enabled: true
-  weekly_report_day: "sunday"  # 每周生成报告的日子
-  weekly_report_hour: 20       # 报告生成时间（24小时制）
+  enabled: false
 
 # 文件监控配置
 watcher:
-  check_interval: 30  # 检查间隔（秒）
-  hash_file: "data/processed_hashes.json"  # 已处理文件hash记录
+  enabled: true
+
+# 分类树根节点（系统预置）
+categories:
+  roots:
+    - name: "工作"
+      code: "工作"
+    - name: "学习"
+      code: "学习"
+    - name: "睡觉"
+      code: "睡觉"
+    - name: "玩耍"
+      code: "玩耍"
+    - name: "吃饭"
+      code: "吃饭"
+    - name: "通勤"
+      code: "通勤"
+    - name: "整理仪容仪表"
+      code: "整理仪容仪表"

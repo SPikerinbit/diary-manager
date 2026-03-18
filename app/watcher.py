@@ -16,7 +16,15 @@ logger = logging.getLogger(__name__)
 class FileHandler(FileSystemEventHandler):
     """文件处理事件处理器"""
 
-    SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown", ".docx", ".doc"}
+    SUPPORTED_EXTENSIONS = {
+        ".pdf",
+        ".md",
+        ".markdown",
+        ".docx",
+        ".doc",
+        ".html",
+        ".htm",
+    }
 
     def on_created(self, event):
         """文件创建事件"""
@@ -107,6 +115,8 @@ def process_existing_files():
             ".markdown",
             ".docx",
             ".doc",
+            ".html",
+            ".htm",
         }:
             logger.info(f"处理已存在文件: {file_path}")
             result = TimeRecordProcessor.process_file(file_path)
