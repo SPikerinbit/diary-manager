@@ -54,13 +54,16 @@ run.bat
 
 ### 第五步：使用
 
-1. 把写好的 HTML 日记放入 `data/input` 文件夹
+1. 把写好的日记（支持 HTML、PDF、Word、Markdown）放入 `data/input` 文件夹
 2. 再次双击 `run.bat`
 3. 在浏览器中查看统计结果
 
 ---
 
 ## 功能特性
+
+- 📄 **多格式支持** - HTML、PDF、Word、Markdown（未来可能支持OCR）
+- 🤖 大模型自动提取时间数据（支持 DeepSeek、OpenAI 等）
 
 - 🤖 大模型自动提取时间数据（支持 DeepSeek、OpenAI 等）
 - 📊 Apple 风格 Web 仪表盘（环形图 + 分类树 + 诗词展示）
